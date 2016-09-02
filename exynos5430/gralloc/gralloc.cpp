@@ -47,6 +47,14 @@
 
 #define ION_FLAG_PRESERVE_KMAP 4
 
+#ifndef HAL_PIXEL_FORMAT_sRGB_A_8888
+#define HAL_PIXEL_FORMAT_sRGB_A_8888 12
+#endif
+
+#ifndef HAL_PIXEL_FORMAT_sRGB_X_8888
+#define HAL_PIXEL_FORMAT_sRGB_X_8888 13
+#endif
+
 /*****************************************************************************/
 
 struct gralloc_context_t {
@@ -154,6 +162,8 @@ static int gralloc_alloc_rgb(int ionfd, int w, int h, int format, int usage,
         case HAL_PIXEL_FORMAT_RGBA_8888:
         case HAL_PIXEL_FORMAT_RGBX_8888:
         case HAL_PIXEL_FORMAT_BGRA_8888:
+        case HAL_PIXEL_FORMAT_sRGB_A_8888:
+        case HAL_PIXEL_FORMAT_sRGB_X_8888:
             bpp = 4;
             break;
         case HAL_PIXEL_FORMAT_RGB_888:

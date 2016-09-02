@@ -26,7 +26,7 @@
 #include "ExynosRect.h"
 #include "fimc-is-metadata.h"
 #include "ExynosCameraSensorInfo.h"
-#include "linux/videodev2_exynos_media.h"
+#include "videodev2_exynos_media.h"
 #include "ExynosCameraBuffer.h"
 #include "ExynosCameraConfig.h"
 

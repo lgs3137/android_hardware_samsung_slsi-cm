@@ -24,6 +24,8 @@
 #include <hardware/hardware.h>
 #include <hardware/gralloc.h>
 
+#include <GLES/gl.h>
+
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/ioctl.h>
@@ -40,6 +42,7 @@
 #endif
 
 #include "gralloc_priv.h"
+#include "gralloc_vsync.h"
 
 inline size_t roundUpToPageSize(size_t x) {
     return (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1);
@@ -49,7 +52,11 @@ inline size_t roundUpToPageSize(size_t x) {
 
 // numbers of buffers for page flipping
 #define NUM_BUFFERS 2
-#define HWC_EXIST 0
+
+// Can we use the HWC for page flipping?
+// Most modern devices should be able to use this and you will face
+// performance degradation without it.
+static bool page_flip_allowed = true;
 
 struct hwc_callback_entry
 {
@@ -65,13 +72,57 @@ struct fb_context_t {
 
 /*****************************************************************************/
 
+/*
+ * Copy buffer to the front if page flip is not available/allowed because of
+ * size constraints.
+ */
+inline void memcpy_buffer(private_module_t* m, buffer_handle_t &buffer) {
+    void* fb_vaddr;
+    void* buffer_vaddr;
+
+    m->base.lock(&m->base, m->framebuffer, GRALLOC_USAGE_SW_WRITE_RARELY,
+                 0, 0, m->info.xres, m->info.yres, &fb_vaddr);
+
+    m->base.lock(&m->base, buffer, GRALLOC_USAGE_SW_READ_RARELY,
+                 0, 0, m->info.xres, m->info.yres, &buffer_vaddr);
+
+    // Do a direct copy.
+    // TODO: Implement a copybit HAL for this
+    memcpy(fb_vaddr, buffer_vaddr, m->finfo.line_length * m->info.yres);
+    m->base.unlock(&m->base, buffer);
+    m->base.unlock(&m->base, m->framebuffer);
+}
+
+/*****************************************************************************/
+
+/*
+ * Keep track of the vsync state to avoid making excessive ioctl calls.
+ * States: -1 --> unknown; 0 --> disabled; 1 --> enabled.
+ */
+static int vsync_state = -1;
+
 static int fb_setSwapInterval(struct framebuffer_device_t* dev,
                               int interval)
 {
-    fb_context_t* ctx = (fb_context_t*)dev;
-    if (interval < dev->minSwapInterval || interval > dev->maxSwapInterval)
-        return -EINVAL;
-    // FIXME: implement fb_setSwapInterval
+    if (interval < dev->minSwapInterval) {
+        interval = dev->minSwapInterval;
+    } else if (interval > dev->maxSwapInterval) {
+        interval = dev->maxSwapInterval;
+    }
+
+    private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
+    m->swapInterval = interval;
+
+    if (interval == 0 && vsync_state != 0) {
+        gralloc_vsync_disable(dev);
+        vsync_state = 0;
+    } else if (vsync_state != 1) {
+        gralloc_vsync_enable(dev);
+        vsync_state = 1;
+    }
+
+    ALOGV("%s: vsync state is: %d", __func__, vsync_state);
+
     return 0;
 }
 
@@ -82,17 +133,27 @@ static int fb_post(struct framebuffer_device_t* dev, buffer_handle_t buffer)
 
     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(buffer);
     private_module_t* m = reinterpret_cast<private_module_t*>(dev->common.module);
-    hwc_callback_queue_t *queue = reinterpret_cast<hwc_callback_queue_t *>(m->queue);
-    pthread_mutex_lock(&m->queue_lock);
-    if(queue->isEmpty())
-        pthread_mutex_unlock(&m->queue_lock);
-    else {
-        private_handle_t *hnd = private_handle_t::dynamicCast(buffer);
-        struct hwc_callback_entry entry = queue->top();
-        queue->pop();
-        pthread_mutex_unlock(&m->queue_lock);
-        entry.callback(entry.data, hnd);
+
+    ALOGW("%s: page flipping %s", page_flip_allowed ? " allowed" : " not allowed");
+
+    if (page_flip_allowed) {
+        hwc_callback_queue_t *queue = reinterpret_cast<hwc_callback_queue_t *>(m->queue);
+        pthread_mutex_lock(&m->queue_lock);
+        if(queue->isEmpty())
+            pthread_mutex_unlock(&m->queue_lock);
+        else {
+            private_handle_t *hnd = private_handle_t::dynamicCast(buffer);
+            struct hwc_callback_entry entry = queue->top();
+            queue->pop();
+            pthread_mutex_unlock(&m->queue_lock);
+            entry.callback(entry.data, hnd);
+        }
+    } else {
+        // If we can't do the page_flip, just copy the buffer to the front
+        // FIXME: use copybit HAL instead of memcpy
+        memcpy_buffer(m, buffer);
     }
+
     return 0;
 }
 
@@ -138,6 +199,27 @@ int init_fb(struct private_module_t* module)
         return -errno;
     }
 
+    /*
+     * Request NUM_BUFFERS screens (at lest 2 for page flipping)
+     */
+    info.yres_virtual = info.yres * NUM_BUFFERS;
+
+    if (ioctl(fd, FBIOPUT_VSCREENINFO, &info) == -1)
+    {
+        info.yres_virtual = info.yres;
+        page_flip_allowed = false;
+        ALOGW("FBIOPUT_VSCREENINFO failed, page flipping not supported fd: %d", fd );
+    }
+
+    if (info.yres_virtual < info.yres * 2)
+    {
+        // we need at least 2 for page-flipping
+        info.yres_virtual = info.yres;
+        page_flip_allowed = false;
+        ALOGW("page flipping not supported (yres_virtual=%d, requested=%d)",
+              info.yres_virtual, info.yres*2 );
+    }
+
     int refreshRate = 1000000000000000LLU /
         (
          uint64_t( info.upper_margin + info.lower_margin + info.vsync_len + info.yres )
@@ -150,9 +232,7 @@ int init_fb(struct private_module_t* module)
 
     float xdpi = (info.xres * 25.4f) / info.width;
     float ydpi = (info.yres * 25.4f) / info.height;
-    float fps  = refreshRate / (double)1000.0;
-
-    ALOGD("refresh int = %d", refreshRate);
+    float fps  = refreshRate / 1000.0f;
 
     ALOGI("using (id=%s)\n"
           "xres         = %d px\n"
@@ -175,8 +255,36 @@ int init_fb(struct private_module_t* module)
     size_t fbSize = roundUpToPageSize(finfo.line_length * info.yres_virtual);
     module->framebuffer = new private_handle_t(dup(fd), fbSize, 0);
 
+    void* vaddr = mmap(0, fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    if (vaddr == MAP_FAILED) {
+        ALOGE("Error mapping the framebuffer (%s)", strerror(errno));
+        close(fd);
+        return -errno;
+    }
+    module->framebuffer->base = vaddr;
+    memset(vaddr, 0, fbSize);
+
     close(fd);
 
+    return 0;
+}
+
+int compositionComplete(struct framebuffer_device_t* dev)
+{
+    /* By doing a finish here we force the GL driver to start rendering
+     all the drawcalls up to this point, and to wait for the rendering to be complete.*/
+    glFinish();
+    /* The rendering of the backbuffer is now completed.
+     When SurfaceFlinger later does a call to eglSwapBuffer(), the swap will be done
+     synchronously in the same thread, and not asynchronoulsy in a background thread later.
+     The SurfaceFlinger requires this behaviour since it releases the lock on all the
+     SourceBuffers (Layers) after the compositionComplete() function returns.
+     However this "bad" behaviour by SurfaceFlinger should not affect performance,
+     since the Applications that render the SourceBuffers (Layers) still get the
+     full renderpipeline using asynchronous rendering. So they perform at maximum speed,
+     and because of their complexity compared to the Surface flinger jobs, the Surface flinger
+     is normally faster even if it does everyhing synchronous and serial.
+     */
     return 0;
 }
 
@@ -189,7 +297,11 @@ int fb_device_open(hw_module_t const* module, const char* name,
     int format = HAL_PIXEL_FORMAT_RGB_565;
 #else
     int bits_per_pixel = 32;
+#ifdef USE_BGRA_8888
+    int format = HAL_PIXEL_FORMAT_BGRA_8888;
+#else
     int format = HAL_PIXEL_FORMAT_RGBA_8888;
+#endif
 #endif
 
     alloc_device_t* gralloc_device;
@@ -223,10 +335,10 @@ int fb_device_open(hw_module_t const* module, const char* name,
     dev->common.version = 0;
     dev->common.module = const_cast<hw_module_t*>(module);
     dev->common.close = fb_close;
-    dev->setSwapInterval = 0;
+    dev->setSwapInterval = fb_setSwapInterval;
     dev->post = fb_post;
     dev->setUpdateRect = 0;
-    dev->compositionComplete = 0;
+    dev->compositionComplete = &compositionComplete;
     m->queue = new hwc_callback_queue_t;
     pthread_mutex_init(&m->queue_lock, NULL);
 

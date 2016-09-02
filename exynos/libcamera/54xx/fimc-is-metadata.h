@@ -1,24 +1,31 @@
-/* Copyright (c) 2011 Samsung Electronics Co, Ltd.
+/*
+ * Samsung Exynos5 SoC series Camera API 2.0 HAL
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
-
+ * Internal Metadata (controls/dynamic metadata and static metadata)
  *
-
- * Alternatively, Licensed under the Apache License, Version 2.0 (the "License");
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd
+ * Contact: Sungjoong Kang, <sj3.kang@samsung.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
+ * distributed under the License is distributed toggle an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-
  */
+
+/*2012.04.18 Version 0.1 Initial Release*/
+/*2012.04.23 Version 0.2 Added static metadata (draft)*/
+/*2012.07.04 Version 0.3 Applied google's undocumented changes (draft)*/
+/*2012.07.11 Version 0.4 Added FD parameters */
+/*2012.07.27 Version 0.5 Modified HSB control and DM */
+/*2012.08.28 Version 0.6 Added AA_SCENE_MODE_NIGHT_CAPTURE */
+
 
 #ifndef FIMC_IS_METADATA_H_
 #define FIMC_IS_METADATA_H_
@@ -41,8 +48,8 @@ struct rational {
 #define CAMERA2_MAX_FACES		16
 #define CAMERA2_MAX_VENDER_LENGTH	400
 #define CAPTURE_NODE_MAX		2
-#define CAMERA2_MAX_PDAF_MULTIROI_COLUMN 9
-#define CAMERA2_MAX_PDAF_MULTIROI_ROW 5
+#define CAMERA2_PDAF_RESULT_COL_MAX     7
+#define CAMERA2_PDAF_RESULT_ROW_MAX     3
 
 #define OPEN_MAGIC_NUMBER		0x01020304
 #define SHOT_MAGIC_NUMBER		0x23456789
@@ -59,31 +66,20 @@ enum metadata_mode {
 };
 
 enum is_subscenario_id {
-	ISS_SUB_SCENARIO_STILL_PREVIEW = 0,	/* 0: still preview */
-	ISS_SUB_SCENARIO_VIDEO = 1,		/* 1: video */
-	ISS_SUB_SCENARIO_DUAL_STILL = 2,	/* 2: dual still preview */
-	ISS_SUB_SCENARIO_DUAL_VIDEO = 3,	/* 3: dual video */
-	ISS_SUB_SCENARIO_VIDEO_HIGH_SPEED = 4,	/* 4: video high speed */
-	ISS_SUB_SCENARIO_STILL_CAPTURE = 5,	/* 5: still capture */
-	ISS_SUB_SCENARIO_FHD_60FPS = 6,		/* 6: video FHD 60fps */
+	ISS_SUB_SCENARIO_STILL_PREVIEW = 0,	// 0: still preview
+	ISS_SUB_SCENARIO_VIDEO = 1,		// 1: video
+	ISS_SUB_SCENARIO_DUAL_STILL = 2,	// 2: dual still preview
+	ISS_SUB_SCENARIO_DUAL_VIDEO = 3,	// 3: dual video
+	ISS_SUB_SCENARIO_VIDEO_HIGH_SPEED = 4,	// 4: video high speed
+	ISS_SUB_SCENARIO_STILL_CAPTURE = 5,	// 5: still capture
+	ISS_SUB_SCENARIO_FHD_60FPS = 6,	// 6: video FHD 60fps
 	ISS_SUB_SCENARIO_UHD_30FPS = 7,         /* 7: video UHD 30fps */
 	ISS_SUB_SCENARIO_WVGA_300FPS = 8,       /* 8: video WVGA 300fps */
-	ISS_SUB_SCENARIO_STILL_PREVIEW_WDR = 9,
-	ISS_SUB_SCENARIO_VIDEO_WDR = 10,
-	ISS_SUB_SCENARIO_STILL_CAPTURE_WDR = 11,
-	ISS_SUB_SCENARIO_UHD_30FPS_WDR = 12,
-	ISS_SUB_SCENARIO_STILL_CAPTURE_ZOOM = 13,
-	ISS_SUB_SCENARIO_STILL_CAPTURE_ZOOM_OUTDOOR = 14,
-	ISS_SUB_SCENARIO_STILL_CAPTURE_ZOOM_INDOOR = 15,
-	ISS_SUB_SCENARIO_STILL_CAPTURE_WDR_ZOOM = 16,
-	ISS_SUB_SCENARIO_STILL_CAPTURE_WDR_ZOOM_OUTDOOR = 17,
-	ISS_SUB_SCENARIO_STILL_CAPTURE_WDR_ZOOM_INDOOR = 18,
-	ISS_SUB_END,
 
-	/* These values will be deprecated */
-	ISS_SUB_SCENARIO_FRONT_VT1 = 4,		/* 4: front camera VT1 for 3G (Temporary) */
-	ISS_SUB_SCENARIO_FRONT_VT2 = 5,		/* 5: front camera VT2 for LTE (Temporary) */
-	ISS_SUB_SCENARIO_FRONT_SMART_STAY = 6,	/* 6: front camera smart stay (Temporary) */
+	ISS_SUB_SCENARIO_FRONT_VT1 = 4,		// 4: front camera VT1 (Temporary)
+	ISS_SUB_SCENARIO_FRONT_VT2 = 5,		// 5: front camera VT2 (Temporary)
+	ISS_SUB_SCENARIO_FRONT_SMART_STAY = 6,	// 6: front camera smart stay (Temporary)
+	ISS_SUB_END,
 };
 
 struct camera2_request_ctl {
@@ -102,30 +98,27 @@ struct camera2_request_dm {
 };
 
 struct camera2_entry_ctl {
-	/** \brief
-		per-frame control for entry control
-		\remarks
-		low parameter is 0bit ~ 31bit flag
-		high parameter is 32bit ~ 63bit flag
-	*/
-	uint32_t		lowIndexParam;
-	uint32_t		highIndexParam;
+/** \brief
+per-frame control for entry control
+\remarks
+low parameter is 0bit ~ 31bit flag
+high parameter is 32bit ~ 63bit flag
+*/
+        uint32_t    lowIndexParam;
+        uint32_t    highIndexParam;
 	uint32_t		parameter[2048];
 };
 
 struct camera2_entry_dm {
-	uint32_t		lowIndexParam;
-	uint32_t		highIndexParam;
+        uint32_t    lowIndexParam;
+        uint32_t    highIndexParam;
 };
 
 /* android.lens */
 
 enum optical_stabilization_mode {
 	OPTICAL_STABILIZATION_MODE_OFF,
-	OPTICAL_STABILIZATION_MODE_ON,
-	OPTICAL_STABILIZATION_MODE_STILL,
-	OPTICAL_STABILIZATION_MODE_VIDEO,
-	OPTICAL_STABILIZATION_MODE_FACTORY,
+	OPTICAL_STABILIZATION_MODE_ON
 };
 
 enum lens_facing {
@@ -255,15 +248,6 @@ enum flash_mode {
 	CAM2_FLASH_MODE_BEST
 };
 
-enum capture_state {
-	CAPTURE_STATE_NONE = 0,
-	CAPTURE_STATE_FLASH = 1,
-	CAPTURE_STATE_HDR_DARK = 12,
-	CAPTURE_STATE_HDR_NORMAL = 13,
-	CAPTURE_STATE_HDR_BRIGHT = 14,
-	CAPTURE_STATE_ZSL_LIKE = 20,
-};
-
 struct camera2_flash_ctl {
 	enum flash_mode		flashMode;
 	uint32_t		firingPower;
@@ -385,7 +369,6 @@ enum colorcorrection_mode {
 	COLORCORRECTION_MODE_EFFECT_WARM_VINTAGE,
 	COLORCORRECTION_MODE_EFFECT_COLD_VINTAGE,
 	COLORCORRECTION_MODE_EFFECT_WASHED,
-	COLORCORRECTION_MODE_EFFECT_BEAUTY_FACE,
 	TOTAOCOUNT_COLORCORRECTION_MODE_EFFECT
 };
 
@@ -536,12 +519,10 @@ enum stats_mode {
 };
 
 enum stats_lowlightmode {
-	STATE_LLS_LEVEL_ZSL = 0,
-	STATE_LLS_LEVEL_LOW = 1,
-	STATE_LLS_LEVEL_HIGH = 2,
-	STATE_LLS_LEVEL_SIS = 3,
-	STATE_LLS_LEVEL_ZSL_LIKE = 4,
-	STATE_LLS_LEVEL_FLASH = 16,
+    STATE_LLS_NONE = 0,
+    STATE_LLS_LEVEL_LOW,
+    STATE_LLS_LEVEL_HIGH,
+    STATE_LLS_LEVEL_SIS
 };
 
 struct camera2_stats_ctl {
@@ -565,8 +546,6 @@ struct camera2_stats_dm {
 	enum stats_mode		sharpnessMapMode;
 	/*sharpnessMap*/
 	enum stats_lowlightmode LowLightMode;
-	uint32_t lls_tuning_set_index;
-	uint32_t lls_brightness_index;
 };
 
 
@@ -588,8 +567,7 @@ enum aa_capture_intent {
 	AA_CAPTURE_INTENT_STILL_CAPTURE,
 	AA_CAPTURE_INTENT_VIDEO_RECORD,
 	AA_CAPTURE_INTENT_VIDEO_SNAPSHOT,
-	AA_CAPTURE_INTENT_ZERO_SHUTTER_LAG,
-	AA_CAPTURE_INTENT_OIS_STILL_CAPTURE,
+	AA_CAPTURE_INTENT_ZERO_SHUTTER_LAG
 };
 
 enum aa_mode {
@@ -632,10 +610,7 @@ enum aa_scene_mode {
 	AA_SCENE_MODE_SLOWMOTION_4_8,
 	AA_SCENE_MODE_DUAL_PREVIEW,
 	AA_SCENE_MODE_DUAL_VIDEO,
-	AA_SCENE_MODE_120_PREVIEW,
-	AA_SCENE_MODE_LIGHT_TRACE,
-	AA_SCENE_MODE_FOOD,
-	AA_SCENE_MODE_THERMAL
+	AA_SCENE_MODE_120_PREVIEW
 };
 
 enum aa_effect_mode {
@@ -656,12 +631,7 @@ enum aa_aemode {
 	AA_AEMODE_CENTER,
 	AA_AEMODE_AVERAGE,
 	AA_AEMODE_MATRIX,
-	AA_AEMODE_SPOT,
-	AA_AEMODE_CENTER_TOUCH,
-	AA_AEMODE_AVERAGE_TOUCH,
-	AA_AEMODE_MATRIX_TOUCH,
-	AA_AEMODE_SPOT_TOUCH,
-	UNKNOWN_AA_AE_MODE,
+	AA_AEMODE_SPOT
 };
 
 enum aa_ae_flashmode {
@@ -686,8 +656,8 @@ enum aa_ae_antibanding_mode {
 	AA_AE_ANTIBANDING_50HZ,
 	AA_AE_ANTIBANDING_60HZ,
 	AA_AE_ANTIBANDING_AUTO,
-	AA_AE_ANTIBANDING_AUTO_50HZ,   /*50Hz + Auto*/
-	AA_AE_ANTIBANDING_AUTO_60HZ    /*60Hz + Auto*/
+    AA_AE_ANTIBANDING_AUTO_50HZ,   /* 50Hz + Auto */
+    AA_AE_ANTIBANDING_AUTO_60HZ    /* 60Hz + Auto */
 };
 
 enum aa_awbmode {
@@ -708,12 +678,10 @@ enum aa_afmode {
 	AA_AFMODE_OFF = 1,
 	AA_AFMODE_SLEEP,
 	AA_AFMODE_INFINITY,
-	AA_AFMODE_MACRO,
-	AA_AFMODE_DELAYED_OFF,
 
 	/* Single AF. These modes are adjusted when afTrigger is changed from 0 to 1 */
 	AA_AFMODE_AUTO = 11,
-	AA_AFMODE_AUTO_MACRO,
+	AA_AFMODE_MACRO,
 	AA_AFMODE_AUTO_VIDEO,
 	AA_AFMODE_AUTO_FACE,
 
@@ -722,23 +690,9 @@ enum aa_afmode {
 	AA_AFMODE_CONTINUOUS_VIDEO,
 	AA_AFMODE_CONTINUOUS_PICTURE_FACE,
 
-	/* Special modes for PDAF */
 	AA_AFMODE_PDAF_OUTFOCUSING = 31,
 	AA_AFMODE_PDAF_OUTFOCUSING_FACE,
-	AA_AFMODE_PDAF_OUTFOCUSING_CONTINUOUS_PICTURE,
-	AA_AFMODE_PDAF_OUTFOCUSING_CONTINUOUS_PICTURE_FACE,
-
-	/* Not supported yet */
 	AA_AFMODE_EDOF = 41,
-};
-
-/* camera2_aa_ctl.afRegions[4] */
-enum aa_afmode_ext {
-	AA_AFMODE_EXT_OFF = 1000,
-	/* Increase macro range for special app */
-	AA_AFMODE_EXT_ADVANCED_MACRO_FOCUS = 1001,
-	/* Set AF region for OCR */
-	AA_AFMODE_EXT_FOCUS_LOCATION = 1002,
 };
 
 enum aa_afstate {
@@ -792,8 +746,6 @@ struct camera2_aa_ctl {
 	uint32_t			afTrigger;
 	enum aa_isomode			isoMode;
 	uint32_t			isoValue;
-	int32_t awbValue;
-	uint32_t reserved[10];
 };
 
 struct camera2_aa_dm {
@@ -818,7 +770,6 @@ struct camera2_aa_dm {
 	enum aa_afstate				afState;
 	enum aa_isomode				isoMode;
 	uint32_t				isoValue;
-	uint32_t reserved[10];
 };
 
 struct camera2_aa_sm {
@@ -975,9 +926,6 @@ struct camera2_af_udm {
 	uint32_t	vsLength;
 	/** vendor specific data array */
 	uint32_t	vendorSpecific[CAMERA2_MAX_VENDER_LENGTH];
-	int32_t         lensPositionInfinity;
-	int32_t         lensPositionMacro;
-	int32_t         lensPositionCurrent;
 };
 
 /** \brief
@@ -1004,16 +952,16 @@ struct camera2_ipc_udm {
  User-defined metadata for aa.
 */
 struct camera2_internal_udm {
-	/** vendor specific data array */
-	uint32_t vendorSpecific1[CAMERA2_MAX_VENDER_LENGTH];
-	uint32_t vendorSpecific2[CAMERA2_MAX_VENDER_LENGTH];
-	/*
-	 * vendorSpecific2[0] : info
-	 * vendorSpecific2[100] : 0:sirc 1:cml
-	 * vendorSpecific2[101] : cml exposure
-	 * vendorSpecific2[102] : cml iso(gain)
-	 * vendorSpecific2[103] : cml Bv
-	 */
+ /** vendor specific data array */
+ uint32_t vendorSpecific1[CAMERA2_MAX_VENDER_LENGTH];
+ uint32_t vendorSpecific2[CAMERA2_MAX_VENDER_LENGTH];
+ /*
+  * vendorSpecific2[0] : info
+  * vendorSpecific2[100] : 0:sirc 1:cml
+  * vendorSpecific2[101] : cml exposure
+  * vendorSpecific2[102] : cml iso(gain)
+  * vendorSpecific2[103] : cml Bv
+  */
 };
 
 /** \brief
@@ -1028,12 +976,12 @@ struct camera2_sensor_uctl {
 	uint64_t        dynamicFrameDuration;
 	uint32_t	analogGain;
 	uint32_t	digitalGain;
-	uint64_t	longExposureTime; /* For supporting WDR */
-	uint64_t	shortExposureTime;
-	uint32_t	longAnalogGain;
-	uint32_t	shortAnalogGain;
-	uint32_t	longDigitalGain;
-	uint32_t	shortDigitalGain;
+	uint64_t        longExposureTime; /* For supporting WDR */
+	uint64_t        shortExposureTime;
+	uint32_t        longAnalogGain;
+	uint32_t        shortAnalogGain;
+	uint32_t        longDigitalGain;
+	uint32_t        shortDigitalGain;
 };
 
 struct camera2_scaler_uctl {
@@ -1059,68 +1007,16 @@ struct camera2_bayer_uctl {
 	struct camera2_scaler_ctl ctl;
 };
 
-enum companion_drc_mode {
-	COMPANION_DRC_OFF = 1,
-	COMPANION_DRC_ON,
-};
-
-enum companion_wdr_mode {
-	COMPANION_WDR_OFF = 1,
-	COMPANION_WDR_ON,
-};
-
-enum companion_paf_mode {
-	COMPANION_PAF_OFF = 1,
-	COMPANION_PAF_ON,
-};
-
-enum companion_bypass_mode {
-	COMPANION_FULL_BYPASS_OFF = 1,
-	COMPANION_FULL_BYPASS_ON,
-};
-
-enum companion_lsc_mode {
-	COMPANION_LSC_OFF = 1,
-	COMPANION_LSC_ON,
-};
-
-struct camera2_companion_uctl {
-	enum companion_drc_mode drc_mode;
-	enum companion_wdr_mode wdr_mode;
-	enum companion_paf_mode paf_mode;
-};
-
 struct camera2_bayer_udm {
 	uint32_t	width;
 	uint32_t	height;
 };
 
-struct camera2_pdaf_single_result {
-	uint16_t        mode;
-	uint16_t        goalPos;
-	uint16_t        reliability;
-	uint16_t        currentPos;
-};
-
-struct camera2_pdaf_multi_result {
-	uint16_t        mode;
-	uint16_t        goalPos;
-	uint16_t        reliability;
-};
-
 struct camera2_pdaf_udm {
-	uint16_t				numCol;	/* width of PDAF map, 0 means no multi PDAF data */
-	uint16_t				numRow;	/* height of PDAF map, 0 means no multi PDAF data */
-	struct camera2_pdaf_multi_result	multiResult[CAMERA2_MAX_PDAF_MULTIROI_COLUMN][CAMERA2_MAX_PDAF_MULTIROI_ROW];
-	struct camera2_pdaf_single_result	singleResult;
-	uint16_t				lensPosResolution;	/* 1023(unsigned 10bit) */
-};
-
-struct camera2_companion_udm {
-	enum companion_drc_mode drc_mode;
-	enum companion_wdr_mode wdr_mode;
-	enum companion_paf_mode paf_mode;
-	struct camera2_pdaf_udm pdaf;
+    uint32_t        pdafColSize; /* width of PDAF map, 0 means no PDAF data */
+    uint32_t        pdafRowSize; /* height of PDAF map, 0 means no PDAF data */
+    uint32_t        pdafData[CAMERA2_PDAF_RESULT_COL_MAX][CAMERA2_PDAF_RESULT_ROW_MAX];
+    uint32_t        reliability[CAMERA2_PDAF_RESULT_COL_MAX][CAMERA2_PDAF_RESULT_ROW_MAX];
 };
 
 /** \brief
@@ -1154,8 +1050,6 @@ struct camera2_uctl {
 	struct camera2_scaler_uctl	scalerUd;
 	/** ispfw specific control(user-defined) of Bcrop1. */
 	struct camera2_bayer_uctl	bayerUd;
-	struct camera2_companion_uctl   companionUd;
-	uint32_t reserved[10];
 };
 
 struct camera2_udm {
@@ -1169,8 +1063,7 @@ struct camera2_udm {
 	struct camera2_internal_udm	internal;
 	/* Add udm for bayer down size. */
 	struct camera2_bayer_udm	bayer;
-	struct camera2_companion_udm	companion;
-	uint32_t reserved[10];
+	struct camera2_pdaf_udm		pdaf;
 };
 
 struct camera2_shot {
@@ -1214,7 +1107,7 @@ struct camera2_node {
 		\remarks
 		[x] video node id
 	*/
-	uint32_t			vid;
+	uint32_t				vid;
 
 	/**	\brief
 		stream control
@@ -1260,7 +1153,7 @@ struct camera2_shot_ext {
 		\remarks
 		[x] mode for setfile
 	*/
-	uint32_t			setfile;
+	uint32_t		setfile;
 
 	/**	\brief
 		node group control
@@ -1275,7 +1168,7 @@ struct camera2_shot_ext {
 		[0] bypass off
 		[1] bypass on
 	*/
-	uint32_t			drc_bypass;
+	uint32_t		drc_bypass;
 
 	/**	\brief
 		post processing control(DIS)
@@ -1283,7 +1176,7 @@ struct camera2_shot_ext {
 		[0] bypass off
 		[1] bypass on
 	*/
-	uint32_t			dis_bypass;
+	uint32_t		dis_bypass;
 
 	/**	\brief
 		post processing control(3DNR)
@@ -1291,7 +1184,7 @@ struct camera2_shot_ext {
 		[0] bypass off
 		[1] bypass on
 	*/
-	uint32_t			dnr_bypass;
+	uint32_t		dnr_bypass;
 
 	/**	\brief
 		post processing control(FD)
@@ -1299,7 +1192,7 @@ struct camera2_shot_ext {
 		[0] bypass off
 		[1] bypass on
 	*/
-	uint32_t			fd_bypass;
+	uint32_t		fd_bypass;
 
 	/*
 	 * ---------------------------------------------------------------------
@@ -1314,13 +1207,13 @@ struct camera2_shot_ext {
 		\remarks
 		[X] count
 	*/
-	uint32_t			free_cnt;
-	uint32_t			request_cnt;
-	uint32_t			process_cnt;
-	uint32_t			complete_cnt;
+	uint32_t		free_cnt;
+	uint32_t		request_cnt;
+	uint32_t		process_cnt;
+	uint32_t		complete_cnt;
 
 	/* reserved for future */
-	uint32_t			reserved[15];
+	uint32_t		reserved[15];
 
 	/**	\brief
 		processing time debugging
@@ -1332,7 +1225,7 @@ struct camera2_shot_ext {
 		[3][x] DRV Shot done
 		[4][x] DRV Meta done
 	*/
-	uint32_t			timeZone[10][2];
+	uint32_t		timeZone[10][2];
 
 	/*
 	 * ---------------------------------------------------------------------
@@ -1340,7 +1233,7 @@ struct camera2_shot_ext {
 	 * ---------------------------------------------------------------------
 	 */
 
-	struct camera2_shot		shot;
+	struct camera2_shot	shot;
 };
 
 /** \brief
@@ -1489,7 +1382,6 @@ typedef struct camera2_ae_udm camera2_ae_udm_t;
 typedef struct camera2_awb_udm camera2_awb_udm_t;
 typedef struct camera2_af_udm camera2_af_udm_t;
 typedef struct camera2_as_udm camera2_as_udm_t;
-typedef struct camera2_ipc_udm camera2_ipc_udm_t;
 typedef struct camera2_internal_udm camera2_internal_udm_t;
 
 typedef struct camera2_flash_uctl camera2_flash_uctl_t;

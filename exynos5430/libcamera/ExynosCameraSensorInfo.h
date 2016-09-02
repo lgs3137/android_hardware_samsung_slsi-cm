@@ -18,8 +18,8 @@
 #ifndef EXYNOS_CAMERA_SENSOR_INFO_H
 #define EXYNOS_CAMERA_SENSOR_INFO_H
 
-#include "linux/videodev2.h"
-#include "linux/videodev2_exynos_camera.h"
+#include <videodev2.h>
+#include <videodev2_exynos_camera.h>
 #include "ExynosCameraConfig.h"
 #include "ExynosCameraSizeTable.h"
 #include "fimc-is-metadata.h"
@@ -232,9 +232,9 @@ public:
     ExynosSensorIMX135();
 };
 
-struct ExynosSensorIMX220 : public ExynosSensorInfo {
+struct ExynosSensorIMX134 : public ExynosSensorInfo {
 public:
-    ExynosSensorIMX220();
+    ExynosSensorIMX134();
 };
 
 struct ExynosSensorS5K3L2 : public ExynosSensorInfo {
@@ -262,14 +262,19 @@ public:
     ExynosSensorS5K3H5();
 };
 
-struct ExynosSensorOV5693 : public ExynosSensorInfo {
+struct ExynosSensorS5K4H5 : public ExynosSensorInfo {
 public:
-    ExynosSensorOV5693();
+    ExynosSensorS5K4H5();
 };
 
 struct ExynosSensorS5K6A3 : public ExynosSensorInfo {
 public:
     ExynosSensorS5K6A3();
+};
+
+struct ExynosSensorIMX175 : public ExynosSensorInfo {
+public:
+    ExynosSensorIMX175();
 };
 
 struct ExynosSensorS5K8B1 : public ExynosSensorInfo {

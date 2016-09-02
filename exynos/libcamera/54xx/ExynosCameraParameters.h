@@ -24,9 +24,9 @@
 #include <cutils/properties.h>
 #include <camera/CameraParameters.h>
 
-#include "linux/videodev2.h"
-#include "linux/videodev2_exynos_media.h"
-#include "linux/videodev2_exynos_camera.h"
+#include <videodev2.h>
+#include <videodev2_exynos_media.h>
+#include <videodev2_exynos_camera.h>
 
 #ifdef USE_CSC_FEATURE
 #include <SecNativeFeature.h>
@@ -857,65 +857,5 @@ private:
 
 
 }; /* namespace android */
-
-/* These are for only internal usage */
-enum is_contrast {
-	IS_CONTRAST_AUTO,
-	IS_CONTRAST_MINUS_2,
-	IS_CONTRAST_MINUS_1,
-	IS_CONTRAST_DEFAULT,
-	IS_CONTRAST_PLUS_1,
-	IS_CONTRAST_PLUS_2,
-	IS_CONTRAST_MAX
-};
-
-enum is_saturation {
-	IS_SATURATION_MINUS_2,
-	IS_SATURATION_MINUS_1,
-	IS_SATURATION_DEFAULT,
-	IS_SATURATION_PLUS_1,
-	IS_SATURATION_PLUS_2,
-	IS_SATURATION_MAX
-};
-
-enum is_sharpness {
-	IS_SHARPNESS_MINUS_2,
-	IS_SHARPNESS_MINUS_1,
-	IS_SHARPNESS_DEFAULT,
-	IS_SHARPNESS_PLUS_1,
-	IS_SHARPNESS_PLUS_2,
-	IS_SHARPNESS_MAX
-};
-
-enum is_exposure {
-	IS_EXPOSURE_MINUS_4,
-	IS_EXPOSURE_MINUS_3,
-	IS_EXPOSURE_MINUS_2,
-	IS_EXPOSURE_MINUS_1,
-	IS_EXPOSURE_DEFAULT,
-	IS_EXPOSURE_PLUS_1,
-	IS_EXPOSURE_PLUS_2,
-	IS_EXPOSURE_PLUS_3,
-	IS_EXPOSURE_PLUS_4,
-	IS_EXPOSURE_MAX
-};
-
-enum is_brightness {
-	IS_BRIGHTNESS_MINUS_2,
-	IS_BRIGHTNESS_MINUS_1,
-	IS_BRIGHTNESS_DEFAULT,
-	IS_BRIGHTNESS_PLUS_1,
-	IS_BRIGHTNESS_PLUS_2,
-	IS_BRIGHTNESS_MAX
-};
-
-enum is_hue {
-	IS_HUE_MINUS_2,
-	IS_HUE_MINUS_1,
-	IS_HUE_DEFAULT,
-	IS_HUE_PLUS_1,
-	IS_HUE_PLUS_2,
-	IS_HUE_MAX
-};
 
 #endif

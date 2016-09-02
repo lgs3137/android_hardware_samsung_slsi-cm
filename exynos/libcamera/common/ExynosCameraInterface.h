@@ -331,11 +331,10 @@ extern "C" {
       get_number_of_cameras : HAL_getNumberOfCameras,
       get_camera_info       : HAL_getCameraInfo,
       set_callbacks         : HAL_set_callbacks,
+#if (TARGET_ANDROID_VER_MAJ >= 4 && TARGET_ANDROID_VER_MIN >= 4)
       get_vendor_tag_ops    : NULL,
-      open_legacy           : NULL,
-      set_torch_mode        : NULL,
-      init                  : NULL,
       reserved              : {0}
+#endif
     };
 }
 

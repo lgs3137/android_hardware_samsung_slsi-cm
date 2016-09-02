@@ -284,8 +284,8 @@ retry:
             return OK;
         }
 
-//        CLOGV("DEBUG(%s):entity pipeId(%d), frameCount(%d), numOfRunningFrame(%d), requestCount(%d)",
-//                __FUNCTION__, getPipeId(), newFrame->getFrameCount(), m_numOfRunningFrame, m_requestCount);
+        CLOGV("DEBUG(%s):entity pipeId(%d), frameCount(%d), numOfRunningFrame(%d), requestCount(%d)",
+                __FUNCTION__, getPipeId(), newFrame->getFrameCount(), m_numOfRunningFrame, m_requestCount);
 
         usleep(33000);
         m_outputFrameQ->pushProcessQ(&newFrame);

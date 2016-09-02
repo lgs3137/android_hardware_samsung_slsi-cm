@@ -15,7 +15,7 @@
  */
 #include "ExynosHWCService.h"
 #include "exynos_v4l2.h"
-#include "linux/videodev2_exynos_media.h"
+#include <linux/videodev2_exynos_media.h>
 #include "ExynosOverlayDisplay.h"
 #include "ExynosExternalDisplay.h"
 #ifdef USES_VIRTUAL_DISPLAY
@@ -422,7 +422,7 @@ ExynosHWCService *ExynosHWCService::getExynosHWCService()
 
 void ExynosHWCService::setExynosHWCCtx(ExynosHWCCtx *HWCCtx)
 {
-    ALOGD_IF(HWC_SERVICE_DEBUG, "HWCCtx=0x%x", (int)HWCCtx);
+    ALOGD_IF(HWC_SERVICE_DEBUG, "HWCCtx=0x%p", HWCCtx);
     if(HWCCtx) {
         mHWCCtx = HWCCtx;
     }

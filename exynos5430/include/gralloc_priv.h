@@ -55,6 +55,7 @@ struct private_module_t {
     float xdpi;
     float ydpi;
     float fps;
+    int swapInterval;
     void *queue;
     pthread_mutex_t queue_lock;
 
@@ -101,7 +102,7 @@ struct private_handle_t {
 
 #ifdef __cplusplus
     static const int sNumFds = 3;
-    static const int sNumInts = 24;
+    static const int sNumInts = 34;
     static const int sMagic = 0x3141592;
 
     private_handle_t(int fd, int size, int flags) :
